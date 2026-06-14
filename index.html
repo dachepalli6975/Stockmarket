@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Pages</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1a1a; min-height: 100vh; }
+  header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 1.25rem 2rem; display: flex; align-items: center; gap: 1rem; }
+  header h1 { font-size: 1.2rem; font-weight: 600; color: #111; }
+  header span { font-size: 0.85rem; color: #6b7280; }
+  .container { max-width: 960px; margin: 2.5rem auto; padding: 0 1.5rem; }
+  .intro { margin-bottom: 2rem; }
+  .intro h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.4rem; }
+  .intro p { color: #6b7280; font-size: 0.95rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.25rem 1.5rem; text-decoration: none; color: inherit; display: block; transition: border-color 0.15s, box-shadow 0.15s; }
+  .card:hover { border-color: #6366f1; box-shadow: 0 2px 12px rgba(99,102,241,0.08); }
+  .card-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tag-trading { background: #ede9fe; color: #4c1d95; }
+  .tag-finance { background: #d1fae5; color: #065f46; }
+  .tag-research { background: #fef3c7; color: #78350f; }
+  .tag-tools { background: #e0f2fe; color: #0c4a6e; }
+  .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.35rem; }
+  .card p { font-size: 0.875rem; color: #6b7280; line-height: 1.5; }
+  .card-footer { margin-top: 1rem; font-size: 0.8rem; color: #9ca3af; }
+  .empty { text-align: center; padding: 3rem 1rem; color: #9ca3af; }
+  .empty .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  footer { text-align: center; padding: 2.5rem 1rem; font-size: 0.8rem; color: #9ca3af; border-top: 1px solid #e5e7eb; margin-top: 4rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>My Pages</h1>
+  <span>Personal dashboards &amp; research</span>
+</header>
+
+<div class="container">
+  <div class="intro">
+    <h2>Published pages</h2>
+    <p>Dashboards, research, and tools — each as its own standalone page.</p>
+  </div>
+
+  <div class="grid" id="pages-grid">
+
+    <a class="card" href="stock-radar.html">
+      <span class="card-tag tag-trading">Trading</span>
+      <h3>Stock radar dashboard</h3>
+      <p>38 ideas tracked across short-term trades and long-term holds with conviction, valuation, and upside metrics.</p>
+      <div class="card-footer">Updated Jun 2026</div>
+    </a>
+
+    <!-- Add new page cards above this comment -->
+
+  </div>
+</div>
+
+<footer>Built and maintained personally &mdash; dachepalli6975</footer>
+
+</body>
+</html>

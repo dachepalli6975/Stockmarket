@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Radar Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1a1a; min-height: 100vh; }
+
+  header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+  header .left { display: flex; align-items: center; gap: 1rem; }
+  header a { font-size: 0.85rem; color: #6366f1; text-decoration: none; }
+  header a:hover { text-decoration: underline; }
+  header h1 { font-size: 1.1rem; font-weight: 600; }
+  header .updated { font-size: 0.8rem; color: #9ca3af; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  @media(max-width:600px){ .metrics { grid-template-columns: repeat(2,1fr); } }
+  .metric { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 1rem 1.1rem; }
+  .metric .lbl { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+  .metric .val { font-size: 24px; font-weight: 600; color: #111; }
+  .metric .sub { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem; }
+  .tab { padding: 6px 14px; border-radius: 8px; border: 1px solid #e5e7eb; font-size: 13px; cursor: pointer; background: #fff; color: #6b7280; transition: all 0.15s; }
+  .tab.active { background: #ede9fe; color: #4c1d95; border-color: #c4b5fd; font-weight: 500; }
+  select { font-size: 13px; padding: 6px 10px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; color: #374151; }
+
+  .section-label { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin: 1.5rem 0 0.75rem; display: flex; align-items: center; gap: 6px; }
+  .section-label span { background: #f3f4f6; color: #374151; font-size: 11px; padding: 1px 7px; border-radius: 99px; font-weight: 500; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem 1.1rem; cursor: default; transition: border-color 0.15s; }
+  .card:hover { border-color: #c4b5fd; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .ticker { font-size: 15px; font-weight: 700; color: #111; }
+  .cat-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 99px; white-space: nowrap; }
+  .cat-established { background: #dbeafe; color: #1e3a8a; }
+  .cat-emerging    { background: #d1fae5; color: #065f46; }
+  .cat-moonshot    { background: #fef3c7; color: #78350f; }
+  .cat-etf         { background: #ede9fe; color: #4c1d95; }
+
+  .name { font-size: 12px; color: #6b7280; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .price-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .price { font-size: 14px; font-weight: 600; color: #111; }
+  .chg.up   { font-size: 12px; color: #059669; }
+  .chg.dn   { font-size: 12px; color: #dc2626; }
+  .chg.flat { font-size: 12px; color: #9ca3af; }
+
+  .upside { font-size: 11px; margin-top: 4px; }
+  .dist.pos { color: #059669; font-weight: 500; }
+  .dist.neg { color: #dc2626; font-weight: 500; }
+
+  .pills { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+  .pill { font-size: 10px; padding: 2px 6px; border-radius: 99px; border: 1px solid #e5e7eb; color: #6b7280; }
+  .pill.high-conv { background: #d1fae5; color: #065f46; border-color: transparent; }
+  .pill.med-conv  { background: #fef3c7; color: #78350f; border-color: transparent; }
+  .pill.low-conv  { background: #fee2e2; color: #991b1b; border-color: transparent; }
+
+  .cf-yes { font-size: 11px; color: #059669; margin-top: 5px; }
+  .cf-no  { font-size: 11px; color: #dc2626; margin-top: 5px; }
+
+  .thoughts { font-size: 11px; color: #9ca3af; margin-top: 6px; line-height: 1.4; display: none; }
+  .card:hover .thoughts { display: block; }
+
+  .empty { text-align: center; padding: 3rem; color: #9ca3af; }
+  footer { text-align: center; padding: 2rem; font-size: 0.8rem; color: #9ca3af; border-top: 1px solid #e5e7eb; margin-top: 3rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="left">
+    <a href="index.html">← All pages</a>
+    <h1>Stock radar dashboard</h1>
+  </div>
+  <span class="updated">Updated Jun 14, 2026 &nbsp;·&nbsp; 38 ideas</span>
+</header>
+
+<div class="container">
+
+  <div class="metrics">
+    <div class="metric"><div class="lbl">Total ideas</div><div class="val">38</div><div class="sub">Priority 1 + 2</div></div>
+    <div class="metric"><div class="lbl">Long-term holds</div><div class="val">14</div><div class="sub">High+ conviction</div></div>
+    <div class="metric"><div class="lbl">Short-term / speculative</div><div class="val">24</div><div class="sub">Moonshots &amp; trades</div></div>
+    <div class="metric"><div class="lbl">Cash flow positive</div><div class="val">27</div><div class="sub">Out of 38 names</div></div>
+  </div>
+
+  <div class="controls">
+    <div id="horizonTabs" style="display:flex;gap:6px;">
+      <button class="tab active" onclick="filterHorizon('all',this)">All</button>
+      <button class="tab" onclick="filterHorizon('long',this)">Long-term</button>
+      <button class="tab" onclick="filterHorizon('short',this)">Short-term</button>
+    </div>
+    <select id="catFilter" onchange="filterCat()">
+      <option value="all">All categories</option>
+      <option value="Established leader">Established leaders</option>
+      <option value="Emerging Growth">Emerging growth</option>
+      <option value="Moonshots">Moonshots</option>
+      <option value="ETF">ETFs</option>
+    </select>
+    <select id="convFilter" onchange="filterConv()">
+      <option value="all">All conviction</option>
+      <option value="Very High">Very High</option>
+      <option value="High">High</option>
+      <option value="Medium">Medium</option>
+      <option value="Low">Low / Beginner</option>
+    </select>
+  </div>
+
+  <div id="output"></div>
+
+</div>
+
+<footer>Hover a card to see thesis &nbsp;·&nbsp; dachepalli6975</footer>
+
+<script>
+const stocks = [
+  {t:"SPCX",n:"SpaceX",p:null,chg:null,cat:"Moonshots",conv:"Beginner",val:"Expensive",fv:110,cf:false,horizon:"short",thoughts:"Moonshot in AI connectivity + TSLA synergies. Massive CapEx near term.",pr:1},
+  {t:"PANW",n:"Palo Alto Networks",p:279.62,chg:0.0,cat:"Emerging Growth",conv:"High",val:"Reasonable",fv:290,cf:true,horizon:"long",thoughts:"Very strong numbers and a winner from platformization in cybersecurity.",pr:1},
+  {t:"SNOW",n:"Snowflake",p:232.78,chg:-3.2,cat:"Emerging Growth",conv:"High",val:"Aggressive",fv:270,cf:true,horizon:"long",thoughts:"Top quality play on AI data, demanding valuation.",pr:1},
+  {t:"MSFT",n:"Microsoft",p:390.74,chg:0.1,cat:"Established leader",conv:"Very High",val:"Cheap",fv:600,cf:true,horizon:"long",thoughts:"Top quality company in software and cloud trading at attractive valuation due to AI fears.",pr:1},
+  {t:"OSS",n:"One Stop Systems",p:16.65,chg:-1.1,cat:"Moonshots",conv:"Beginner",val:"Speculative",fv:18,cf:false,horizon:"short",thoughts:"Speculative moonshot play on robotics.",pr:1},
+  {t:"XBI",n:"Biotech ETF",p:133.79,chg:0.8,cat:"ETF",conv:"Medium",val:"—",fv:null,cf:null,horizon:"long",thoughts:"Biotech stocks benefitting from AI-driven drug discovery in the years ahead.",pr:1},
+  {t:"KWEB",n:"China Internet ETF",p:26.49,chg:-0.3,cat:"ETF",conv:"Low",val:"Very Attractive",fv:null,cf:null,horizon:"short",thoughts:"Extremely cheap, enormous upside if geopolitical tensions calm. Use stops.",pr:1},
+  {t:"BABA",n:"Alibaba",p:112.82,chg:0.1,cat:"Established leader",conv:"Medium",val:"Cheap",fv:260,cf:true,horizon:"long",thoughts:"Cheaply valued with expansion into AI. Consistently solid profitability.",pr:1},
+  {t:"REGN",n:"Regeneron",p:612.14,chg:0.1,cat:"Emerging Growth",conv:"Medium",val:"Reasonable",fv:890,cf:true,horizon:"long",thoughts:"Quality play in biotech. Solid cash flows but industry uncertainty.",pr:1},
+  {t:"AVGO",n:"Broadcom",p:382.07,chg:-0.9,cat:"Established leader",conv:"High",val:"Reasonable",fv:480,cf:true,horizon:"long",thoughts:"Quality play in semis. Strong profitability.",pr:1},
+  {t:"CLS",n:"Celestica",p:393.12,chg:1.9,cat:"Moonshots",conv:"Beginner",val:"Demanding",fv:380,cf:true,horizon:"short",thoughts:"Solid numbers and exposure to cloud connectivity. Thin but positive margins.",pr:1},
+  {t:"LMND",n:"Lemonade",p:57.49,chg:0.5,cat:"Moonshots",conv:"Medium",val:"Fair",fv:80,cf:false,horizon:"short",thoughts:"High demand AI implementation player. Not profitable for several years.",pr:1},
+  {t:"BE",n:"Bloom Energy",p:260.22,chg:4.6,cat:"Moonshots",conv:"Beginner",val:"Cheap",fv:200,cf:true,horizon:"short",thoughts:"Very high momentum in both directions. Looking for better entry point.",pr:1},
+  {t:"CRDO",n:"Credo",p:250.81,chg:-5.3,cat:"Moonshots",conv:"Beginner",val:"Cheap",fv:200,cf:true,horizon:"short",thoughts:"Very strong growth in AI infrastructure. Extreme volatility. Looking for right timing.",pr:1},
+  {t:"HIMS",n:"Hims & Hers Health",p:26.82,chg:-7.1,cat:"Moonshots",conv:"Beginner",val:"Reasonable",fv:45,cf:true,horizon:"short",thoughts:"Volatile bet on personalized medicine.",pr:1},
+  {t:"AUPH",n:"Aurinia Pharma",p:15.82,chg:-0.2,cat:"Moonshots",conv:"Beginner",val:"Reasonable",fv:18,cf:true,horizon:"short",thoughts:"Biotech play with products for autoimmune diseases. Just profitable this year.",pr:1},
+  {t:"BOSC",n:"Better Online Solutions",p:4.30,chg:1.7,cat:"Moonshots",conv:"Beginner",val:"Cheap",fv:6,cf:true,horizon:"short",thoughts:"Microcap stock with robotics exposure. Profitable but small and underfollowed.",pr:1},
+  {t:"LLY",n:"Eli Lilly",p:1133.00,chg:-2.4,cat:"Established leader",conv:"Medium",val:"Demanding",fv:1100,cf:true,horizon:"long",thoughts:"Leader in weight loss drugs. Solid profitability.",pr:1},
+  {t:"INCY",n:"Incyte",p:108.53,chg:0.7,cat:"Moonshots",conv:"Beginner",val:"Reasonable",fv:110,cf:true,horizon:"short",thoughts:"Solid numbers in biotech. Volatile margins but currently profitable.",pr:1},
+  {t:"SOFI",n:"SoFi Technologies",p:16.58,chg:-0.5,cat:"Emerging Growth",conv:"Medium",val:"Reasonable",fv:25,cf:true,horizon:"short",thoughts:"Strong traction with consumers. Volatile margins but currently profitable.",pr:1},
+  {t:"HOOD",n:"Robinhood",p:93.19,chg:1.0,cat:"Emerging Growth",conv:"Beginner",val:"Demanding",fv:100,cf:true,horizon:"short",thoughts:"Very strong execution and innovation in fintech with crypto exposure.",pr:1},
+  {t:"BIDU",n:"Baidu",p:115.77,chg:-0.3,cat:"Moonshots",conv:"Beginner",val:"Reasonable",fv:150,cf:true,horizon:"short",thoughts:"Cloud and AI name in China. Widely profitable business model.",pr:1},
+  {t:"GEV",n:"GE Vernova",p:940.66,chg:3.7,cat:"Emerging Growth",conv:"Beginner",val:"Demanding",fv:1150,cf:true,horizon:"short",thoughts:"Energy name with potential for profitability expansion.",pr:1},
+  {t:"CRWV",n:"CoreWeave",p:100.55,chg:5.0,cat:"Moonshots",conv:"Beginner",val:"Demanding",fv:150,cf:false,horizon:"short",thoughts:"Direct AI cloud infrastructure play. Strong upside, elevated risk. Cash flow negative for 3+ years.",pr:1},
+  {t:"ISRG",n:"Intuitive Surgical",p:411.06,chg:-0.5,cat:"Emerging Growth",conv:"High",val:"Reasonable",fv:570,cf:true,horizon:"long",thoughts:"Growth leader in robotic surgery with strong execution.",pr:1},
+  {t:"OUST",n:"Ouster",p:39.80,chg:0.5,cat:"Moonshots",conv:"Low",val:"Demanding",fv:35,cf:false,horizon:"short",thoughts:"Moonshot with massive risk and enormous potential in LiDAR.",pr:1},
+  {t:"IREN",n:"IREN",p:59.77,chg:5.4,cat:"Moonshots",conv:"Beginner",val:"Uncertain",fv:60,cf:false,horizon:"short",thoughts:"Moonshot play in AI cloud with advantages in energy costs. Profitable perhaps 2027.",pr:2},
+  {t:"MU",n:"Micron",p:981.61,chg:-1.4,cat:"Emerging Growth",conv:"High",val:"Demanding",fv:450,cf:true,horizon:"long",thoughts:"Leader in memory. Cyclical industry but with AI tailwinds.",pr:2},
+  {t:"NBIS",n:"Nebius",p:232.36,chg:4.6,cat:"Moonshots",conv:"Beginner",val:"Demanding",fv:110,cf:false,horizon:"short",thoughts:"High growth and high risk in AI cloud. Heavy investments, negative cash flows.",pr:2},
+  {t:"RKLB",n:"Rocket Lab",p:102.39,chg:-10.8,cat:"Moonshots",conv:"Low",val:"Demanding",fv:85,cf:false,horizon:"short",thoughts:"Moonshot in space with exceptionally solid execution track record.",pr:2},
+  {t:"TER",n:"Teradyne",p:403.20,chg:5.7,cat:"Emerging Growth",conv:"Medium",val:"Attractive",fv:340,cf:true,horizon:"long",thoughts:"Cyclical play in testing with compelling growth opportunity in robotics.",pr:2},
+  {t:"ASML",n:"ASML",p:1863.55,chg:-1.9,cat:"Established leader",conv:"Very High",val:"Attractive",fv:1500,cf:true,horizon:"long",thoughts:"Irreplaceable player in semiconductor equipment with rock-solid technological advantage.",pr:2},
+  {t:"ASTS",n:"AST SpaceMobile",p:82.41,chg:-15.5,cat:"Moonshots",conv:"Low",val:"Hard to quantify",fv:50,cf:false,horizon:"short",thoughts:"High risk play in satellite connectivity with abundant potential. Profitable 2027/2028.",pr:2},
+  {t:"OSCR",n:"Oscar Health",p:28.26,chg:-2.3,cat:"Moonshots",conv:"Beginner",val:"Cheap",fv:22,cf:false,horizon:"short",thoughts:"Young company leveraging tech and AI to improve health insurance. Not yet clearly profitable.",pr:2},
+  {t:"GRAB",n:"Grab Holdings",p:3.30,chg:-1.5,cat:"Moonshots",conv:"Low",val:"Cheap",fv:6,cf:false,horizon:"short",thoughts:"Mobility and fintech opportunity in Southeast Asia. Expected to turn profitable 2025.",pr:2},
+  {t:"BRK.B",n:"Berkshire Hathaway",p:489.25,chg:0.7,cat:"Established leader",conv:"Very High",val:"Attractive",fv:500,cf:true,horizon:"long",thoughts:"Collection of high quality businesses with impeccable soundness and attractive valuation.",pr:2},
+  {t:"CDNS",n:"Cadence Design",p:384.96,chg:0.3,cat:"Emerging Growth",conv:"High",val:"Reasonable",fv:290,cf:true,horizon:"long",thoughts:"Behind SNPS in size but growing faster. Excellent numbers, solid cash flows.",pr:2},
+  {t:"CCJ",n:"Cameco",p:100.96,chg:2.0,cat:"Emerging Growth",conv:"Beginner",val:"Reasonable",fv:137,cf:true,horizon:"short",thoughts:"Leading play in nuclear energy with strong tailwinds from AI electricity demand.",pr:2}
+];
+
+let currentHorizon = "all", currentCat = "all", currentConv = "all";
+
+function convClass(c) {
+  if (c === "Very High" || c === "High") return "high-conv";
+  if (c === "Medium") return "med-conv";
+  return "low-conv";
+}
+function catClass(c) {
+  const m = { "Established leader":"cat-established","Emerging Growth":"cat-emerging","ETF":"cat-etf" };
+  return m[c] || "cat-moonshot";
+}
+function catLabel(c) {
+  const m = { "Established leader":"Leader","Emerging Growth":"Growth","ETF":"ETF" };
+  return m[c] || "Moonshot";
+}
+function fmtPrice(p) {
+  if (p === null) return "—";
+  if (p >= 1000) return "$" + p.toLocaleString("en-US", {minimumFractionDigits:2,maximumFractionDigits:2});
+  return "$" + p.toFixed(2);
+}
+function fmtChg(c) { if (c === null) return ""; return (c > 0 ? "+" : "") + c.toFixed(1) + "%"; }
+function chgClass(c) { if (c === null) return "flat"; return c > 0 ? "up" : c < 0 ? "dn" : "flat"; }
+function fmtDist(p, fv) {
+  if (!p || !fv) return "";
+  let d = ((fv - p) / p * 100);
+  return (d > 0 ? "+" : "") + d.toFixed(1) + "% to FV";
+}
+function distClass(p, fv) { if (!p || !fv) return ""; return ((fv - p) / p) > 0 ? "pos" : "neg"; }
+
+function cardHTML(s) {
+  let d = fmtDist(s.p, s.fv);
+  let dc = distClass(s.p, s.fv);
+  let cfStr = s.cf === null ? "" : s.cf
+    ? `<div class="cf-yes">&#10003; cash flow positive</div>`
+    : `<div class="cf-no">&#10007; no cash flow yet</div>`;
+  return `<div class="card">
+    <div class="card-top">
+      <span class="ticker">${s.t}</span>
+      <span class="cat-badge ${catClass(s.cat)}">${catLabel(s.cat)}</span>
+    </div>
+    <div class="name">${s.n}</div>
+    <div class="price-row">
+      <span class="price">${fmtPrice(s.p)}</span>
+      <span class="chg ${chgClass(s.chg)}">${fmtChg(s.chg)}</span>
+    </div>
+    ${d ? `<div class="upside"><span class="dist ${dc}">${d}</span></div>` : ""}
+    <div class="pills">
+      <span class="pill ${convClass(s.conv)}">${s.conv} conviction</span>
+      <span class="pill">${s.val}</span>
+    </div>
+    ${cfStr}
+    <div class="thoughts">${s.thoughts}</div>
+  </div>`;
+}
+
+function render() {
+  const filtered = stocks.filter(s => {
+    if (currentHorizon !== "all" && s.horizon !== currentHorizon) return false;
+    if (currentCat !== "all" && s.cat !== currentCat) return false;
+    if (currentConv !== "all") {
+      if (currentConv === "Low" && s.conv !== "Low" && s.conv !== "Beginner") return false;
+      if (currentConv !== "Low" && s.conv !== currentConv) return false;
+    }
+    return true;
+  });
+
+  const long = filtered.filter(s => s.horizon === "long");
+  const short = filtered.filter(s => s.horizon === "short");
+
+  let html = "";
+  if (long.length) {
+    html += `<div class="section-label">&#8593; Long-term holds <span>${long.length}</span></div>`;
+    html += `<div class="grid">${long.map(cardHTML).join("")}</div>`;
+  }
+  if (short.length) {
+    html += `<div class="section-label" style="margin-top:2rem">&#9889; Short-term / speculative <span>${short.length}</span></div>`;
+    html += `<div class="grid">${short.map(cardHTML).join("")}</div>`;
+  }
+  if (!filtered.length) html = `<div class="empty">No stocks match this filter.</div>`;
+
+  document.getElementById("output").innerHTML = html;
+}
+
+function filterHorizon(h, el) {
+  currentHorizon = h;
+  document.querySelectorAll("#horizonTabs .tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  render();
+}
+function filterCat() { currentCat = document.getElementById("catFilter").value; render(); }
+function filterConv() { currentConv = document.getElementById("convFilter").value; render(); }
+
+render();
+</script>
+</body>
+</html>
