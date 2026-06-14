@@ -20,7 +20,16 @@
   .header-title { display: flex; align-items: center; gap: 10px; }
   .header-title .dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; }
   .header-title h1 { font-size: 1.15rem; font-weight: 600; color: #f1f5f9; }
-  .header-right { font-size: 0.78rem; color: #64748b; }
+  .header-right { font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 10px; }
+  .refresh-btn { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid #2d3748; background: transparent; color: #7c8cf8; cursor: pointer; transition: all 0.15s; }
+  .refresh-btn:hover { background: #1a1f2e; border-color: #4f46e5; }
+  .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .price-loading { color: #475569; font-size: 13px; }
+  .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #4ade80; margin-right: 5px; animation: pulse 2s infinite; }
+  .stale-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; margin-right: 5px; }
+  @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.3; } }
+  .price-live { color: #e2e8f0; }
+  .price-stale { color: #94a3b8; }
 
   .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
 
@@ -174,7 +183,10 @@
       <h1>Stock Radar Dashboard</h1>
     </div>
   </div>
-  <div class="header-right">Updated Jun 14, 2026 &nbsp;&bull;&nbsp; 38 ideas</div>
+  <div class="header-right">
+    <span id="price-status">38 ideas</span>
+    <button class="refresh-btn" id="refreshBtn" onclick="fetchPrices(true)">&#8635; Refresh prices</button>
+  </div>
 </header>
 
 <div class="container">
@@ -371,6 +383,79 @@ function filterCat() { currentCat = document.getElementById("catFilter").value; 
 function filterConv() { currentConv = document.getElementById("convFilter").value; render(); }
 
 render();
+
+const CACHE_KEY = 'radar_prices';
+const CACHE_TTL = 8 * 60 * 60 * 1000; // 8 hours
+
+const tickers = stocks.filter(s => s.t !== 'SPCX').map(s => s.t);
+
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return data;
+  } catch(e) { return null; }
+}
+
+function saveCache(data) {
+  localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+}
+
+function applyPrices(data) {
+  stocks.forEach(s => {
+    if (data[s.t]) {
+      s.p   = data[s.t].price;
+      s.chg = data[s.t].chg;
+    }
+  });
+  render();
+  const ts = data._ts ? new Date(data._ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+  document.getElementById('price-status').innerHTML =
+    `<span class="live-dot"></span> Live prices &nbsp;&bull;&nbsp; updated ${ts}`;
+  document.getElementById('refreshBtn').disabled = false;
+}
+
+async function fetchPrices(force) {
+  if (!force) {
+    const cached = loadCache();
+    if (cached) { applyPrices(cached); return; }
+  }
+
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = 'Fetching…';
+  document.getElementById('price-status').innerHTML =
+    `<span class="stale-dot"></span> Fetching live prices…`;
+
+  const symbols = tickers.join(',');
+  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,regularMarketChangePercent`;
+  const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+
+  try {
+    const res = await fetch(proxy);
+    const json = await res.json();
+    const quotes = json?.quoteResponse?.result || [];
+    const data = { _ts: Date.now() };
+    quotes.forEach(q => {
+      data[q.symbol] = {
+        price: q.regularMarketPrice,
+        chg:   q.regularMarketChangePercent
+      };
+    });
+    saveCache(data);
+    applyPrices(data);
+    btn.textContent = '↻ Refresh prices';
+  } catch(e) {
+    document.getElementById('price-status').innerHTML =
+      `<span class="stale-dot"></span> Could not fetch prices`;
+    btn.disabled = false;
+    btn.textContent = '↻ Retry';
+  }
+}
+
+fetchPrices(false);
 </script>
 </body>
 </html>
